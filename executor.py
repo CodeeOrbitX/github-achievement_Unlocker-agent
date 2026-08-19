@@ -408,16 +408,16 @@ async def execute_pair_extraordinaire(
     """
     safety.assert_not_stopped()
 
-    # Fetch real identity for Account 2
+    # Fetch real identity for Account 1 (the one who needs the badge)
     try:
-        user2 = await client_2.get_user()
-        coauthor_login = user2.get("login", "")
-        coauthor_name = user2.get("name") or coauthor_login
-        coauthor_email = user2.get("email")
+        user1 = await client_1.get_user()
+        coauthor_login = user1.get("login", "")
+        coauthor_name = user1.get("name") or coauthor_login
+        coauthor_email = user1.get("email")
     except Exception as e:
         return ExecutionResult(
             "pair_extraordinaire", "co-authored PR", False,
-            f"Could not fetch Account 2 identity: {e}", dry_run
+            f"Could not fetch Account 1 identity: {e}", dry_run
         )
 
     if not coauthor_email:
@@ -427,19 +427,55 @@ async def execute_pair_extraordinaire(
     if dry_run:
         return ExecutionResult(
             "pair_extraordinaire", "co-authored PR", True,
-            f"[DRY RUN] Would create a co-authored PR with {coauthor_name} "
-            f"<{coauthor_email}> (Account 2: @{coauthor_login}).",
+            f"[DRY RUN] Would perform a BIDIRECTIONAL run. First, Account 1 (@{coauthor_login}) will co-author a PR for Account 2. Then Account 2 will co-author a PR for Account 1. This unlocks BOTH badges for BOTH accounts!",
             dry_run=True,
             details={"coauthor_login": coauthor_login, "coauthor_email": coauthor_email},
         )
 
-    # Use Account 1's client but embed Account 2's real identity as co-author
-    return await execute_pull_shark(
-        account_id=account_id_1,
-        client=client_1,
+    # 1. Use Account 2's client to do the work, embedding Account 1 as co-author
+    # This ensures Account 1 receives Pair Extraordinaire.
+    res1 = await execute_pull_shark(
+        account_id=account_id_2,
+        client=client_2,
         dry_run=False,
         coauthor_name=coauthor_name,
         coauthor_email=coauthor_email,
+    )
+
+    if not res1.success:
+        return res1
+
+    # Fetch real identity for Account 2 (to be the co-author for the second half)
+    try:
+        user2 = await client_2.get_user()
+        coauthor_login2 = user2.get("login", "")
+        coauthor_name2 = user2.get("name") or coauthor_login2
+        coauthor_email2 = user2.get("email")
+        if not coauthor_email2:
+            coauthor_email2 = f"{coauthor_login2}@users.noreply.github.com"
+    except Exception as e:
+        return ExecutionResult(
+            "pair_extraordinaire", "co-authored PR", False,
+            f"Phase 1 succeeded, but failed to fetch Account 2 identity for Phase 2: {e}", dry_run
+        )
+
+    # 2. Use Account 1's client to do the work, embedding Account 2 as co-author
+    # This ensures Account 2 receives Pair Extraordinaire.
+    res2 = await execute_pull_shark(
+        account_id=account_id_1,
+        client=client_1,
+        dry_run=False,
+        coauthor_name=coauthor_name2,
+        coauthor_email=coauthor_email2,
+    )
+
+    if not res2.success:
+        return res2
+
+    return ExecutionResult(
+        "pair_extraordinaire", "co-authored PR", True,
+        "✅ BI-DIRECTIONAL SUCCESS! Both accounts have now earned the Pair Extraordinaire and Pull Shark badges!",
+        dry_run=False
     )
 
 

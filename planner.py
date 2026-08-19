@@ -61,11 +61,46 @@ def build_action_plan(
 
         # --- Core decision function ---
 
-        if status in (AchievementStatus.EARNED.value, AchievementStatus.UNOBTAINABLE.value):
+        if status == AchievementStatus.UNOBTAINABLE.value:
             classification = "SKIP"
             is_executable = False
             requires_confirmation = False
-            desc = f"Already {'earned' if status == 'EARNED' else 'unobtainable'} — no action needed."
+            desc = "Unobtainable — no action needed."
+            
+        elif status == AchievementStatus.EARNED.value:
+            # Check if there's a higher tier available
+            progress = ach.get("progress", {})
+            current = progress.get("current", 0)
+            required = progress.get("required", 1)
+            
+            if current >= required:
+                classification = "SKIP"
+                is_executable = False
+                requires_confirmation = False
+                desc = "Already fully earned — no action needed."
+            else:
+                # Treat it as automatable to reach the next tier
+                if auto_class == AutomationClass.AUTO.value:
+                    classification = "AUTO"
+                    is_executable = True
+                    requires_confirmation = False
+                    desc = f"Progressing towards next tier ({current}/{required}). " + _describe_auto(key, ach)
+                elif auto_class == AutomationClass.SEMI_AUTO.value:
+                    if ach.get("requires_second_account") and not second_account_available:
+                        classification = "HUMAN"
+                        is_executable = False
+                        requires_confirmation = False
+                        desc = "Requires a second GitHub account."
+                    else:
+                        classification = "SEMI_AUTO"
+                        is_executable = True
+                        requires_confirmation = True
+                        desc = f"Progressing towards next tier ({current}/{required}). " + _describe_semi_auto(key, ach)
+                else:
+                    classification = "HUMAN"
+                    is_executable = False
+                    requires_confirmation = False
+                    desc = f"Progressing towards next tier ({current}/{required}). Manual action required."
 
         elif status == AchievementStatus.PAYMENT_REQUIRED.value:
             classification = "PAYMENT"

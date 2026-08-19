@@ -316,6 +316,25 @@ async def scan_achievements(
     max_stars         = _max_repo_stars(repos)
     has_sponsor       = _has_sponsorship_activity(events)
 
+    # --- Scrape Public Profile for True Truth (bypasses 90-day event limit) ---
+    scraped_achievements = set()
+    try:
+        import httpx
+        async with httpx.AsyncClient() as http_client:
+            resp = await http_client.get(f"https://github.com/{username}?tab=achievements", timeout=10.0)
+            if resp.status_code == 200:
+                html = resp.text.lower()
+                if "quickdraw" in html: scraped_achievements.add("quickdraw")
+                if "pull-shark" in html: scraped_achievements.add("pull_shark")
+                if "yolo" in html: scraped_achievements.add("yolo")
+                if "pair-extraordinaire" in html: scraped_achievements.add("pair_extraordinaire")
+                if "galaxy-brain" in html: scraped_achievements.add("galaxy_brain")
+                if "starstruck" in html: scraped_achievements.add("starstruck")
+                if "public-sponsor" in html: scraped_achievements.add("public_sponsor")
+                logger.info("Scraped earned achievements from HTML: %s", scraped_achievements)
+    except Exception as e:
+        logger.warning("Failed to scrape public achievements for %s: %s", username, e)
+
     # --- Supplement with local DB Audit Log (instant) ---
     all_logs = db.get_audit_log(limit=500)
     local_logs = [l for l in all_logs if l["account_id"] == account_id and l["dry_run"] == 0]
@@ -346,7 +365,7 @@ async def scan_achievements(
 
         # --- Quickdraw ---
         elif key == "quickdraw":
-            if quickdraw_earned:
+            if quickdraw_earned or "quickdraw" in scraped_achievements:
                 status = AchievementStatus.EARNED
                 progress = {"current": 1, "required": 1}
             else:
@@ -355,6 +374,11 @@ async def scan_achievements(
 
         # --- Pull Shark ---
         elif key == "pull_shark":
+            if "pull_shark" in scraped_achievements:
+                status = AchievementStatus.EARNED
+                # At least tier 1. We could guess tiers, but let's assume default unless we have local data.
+                merged_pr_count = max(merged_pr_count, 2)
+                
             progress = {"current": merged_pr_count, "required": 2}
             if merged_pr_count >= 1024:
                 status = AchievementStatus.EARNED
@@ -378,7 +402,7 @@ async def scan_achievements(
 
         # --- YOLO ---
         elif key == "yolo":
-            if local_yolo:
+            if local_yolo or "yolo" in scraped_achievements:
                 status = AchievementStatus.EARNED
                 progress = {"current": 1, "required": 1}
             else:
@@ -387,6 +411,9 @@ async def scan_achievements(
 
         # --- Pair Extraordinaire ---
         elif key == "pair_extraordinaire":
+            if "pair_extraordinaire" in scraped_achievements:
+                coauthored_count = max(coauthored_count, 1)
+                
             if local_pair or coauthored_count > 0:
                 count = max(coauthored_count, 1 if local_pair else 0)
                 progress = {"current": count, "required": 24}
@@ -410,11 +437,18 @@ async def scan_achievements(
 
         # --- Galaxy Brain ---
         elif key == "galaxy_brain":
-            status = AchievementStatus.HUMAN_REQUIRED
-            progress = {"current": 0, "required": 1}
+            if "galaxy_brain" in scraped_achievements:
+                status = AchievementStatus.EARNED
+                progress = {"current": 1, "required": 1}
+            else:
+                status = AchievementStatus.HUMAN_REQUIRED
+                progress = {"current": 0, "required": 1}
 
         # --- Starstruck ---
         elif key == "starstruck":
+            if "starstruck" in scraped_achievements:
+                max_stars = max(max_stars, 16)
+                
             progress = {"current": max_stars, "required": 16}
             if max_stars >= 4096:
                 status = AchievementStatus.EARNED

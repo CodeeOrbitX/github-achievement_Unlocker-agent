@@ -269,7 +269,7 @@ class GitHubClient:
         rate_limiter.check_mutation_budget(self.account_id)
         result = await self._request(
             "PUT", f"/repos/{owner}/{repo}/pulls/{pr_number}/merge",
-            json_body={"commit_title": commit_title, "merge_method": "squash"}
+            json_body={"commit_title": commit_title, "merge_method": "merge"}
         )
         import database as db
         db.increment_mutations(self.account_id)
