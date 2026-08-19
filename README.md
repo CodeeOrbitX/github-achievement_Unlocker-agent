@@ -56,7 +56,7 @@ The agent **automatically stops** on:
 ### 1. Clone / open the project
 
 ```bash
-git clone https://github.com/hariom33699/github-achievement_Unlocker-agent.git
+git clone https://github.com/CodeeOrbitX/github-achievement_Unlocker-agent.git
 cd github-achievement_Unlocker-agent
 ```
 
