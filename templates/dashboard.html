@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🏆 GitHub Achievement Agent</title>
+  <meta name="description" content="Legitimate GitHub achievement automation with safety controls — scan, plan, and earn achievements through official GitHub APIs." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════ HEADER ═══════════════════════════════ -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <span class="brand-icon">🏆</span>
+      <div>
+        <h1 class="brand-title">GitHub Achievement Agent</h1>
+        <p class="brand-sub">Unlock Maximum Eligible Achievements — Legitimately</p>
+      </div>
+    </div>
+
+    <div class="header-controls">
+      <!-- Account selector -->
+      <div class="account-selector">
+        <label class="control-label">Account</label>
+        <div class="seg-control" id="accountSelector">
+          <button class="seg-btn active" data-account="1" id="acc1Btn">Account 1</button>
+          <button class="seg-btn" data-account="2" id="acc2Btn">Account 2</button>
+        </div>
+      </div>
+
+      <!-- Mode toggle -->
+      <div class="mode-toggle">
+        <label class="control-label">Mode</label>
+        <div class="seg-control">
+          <button class="seg-btn active" id="dryRunBtn" onclick="setMode(true)">✓ Dry Run</button>
+          <button class="seg-btn danger" id="liveBtn" onclick="setMode(false)">⚡ Live</button>
+        </div>
+      </div>
+
+      <!-- Emergency stop -->
+      <button class="stop-btn" id="stopBtn" onclick="emergencyStop()">
+        🛑 STOP ALL
+      </button>
+    </div>
+  </div>
+
+  <!-- Stop banner -->
+  <div class="stop-banner" id="stopBanner" style="display:none">
+    <span>🛑 Automation stopped: <span id="stopReasonText"></span></span>
+    <button onclick="resetStop()" class="reset-btn">↺ Reset &amp; Continue</button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════ MAIN ═══════════════════════════════ -->
+<main class="main-content">
+
+  <!-- ── Rate limit bar ── -->
+  <div class="rate-bar" id="rateBar">
+    <span class="rate-item">
+      <span class="rate-dot"></span>
+      API Remaining: <strong id="rateLimitRemaining">—</strong>
+    </span>
+    <span class="rate-item">
+      Hourly mutations: <strong id="hourlyMutations">—</strong>
+    </span>
+    <span class="rate-item">
+      Daily PRs: <strong id="dailyPRs">—</strong>
+    </span>
+    <span class="rate-item">
+      Daily Issues: <strong id="dailyIssues">—</strong>
+    </span>
+  </div>
+
+  <!-- ── Progress summary cards ── -->
+  <section class="summary-grid" id="summaryGrid">
+    <div class="summary-card earned">
+      <div class="card-icon">✅</div>
+      <div class="card-count" id="countEarned">—</div>
+      <div class="card-label">Earned</div>
+    </div>
+    <div class="summary-card automatable">
+      <div class="card-icon">🤖</div>
+      <div class="card-count" id="countAuto">—</div>
+      <div class="card-label">Automatable</div>
+    </div>
+    <div class="summary-card in-progress">
+      <div class="card-icon">⏳</div>
+      <div class="card-count" id="countProgress">—</div>
+      <div class="card-label">In Progress</div>
+    </div>
+    <div class="summary-card human">
+      <div class="card-icon">👤</div>
+      <div class="card-count" id="countHuman">—</div>
+      <div class="card-label">Human Required</div>
+    </div>
+    <div class="summary-card payment">
+      <div class="card-icon">💳</div>
+      <div class="card-count" id="countPayment">—</div>
+      <div class="card-label">Payment Required</div>
+    </div>
+    <div class="summary-card unobtainable">
+      <div class="card-icon">🚫</div>
+      <div class="card-count" id="countUnobtainable">—</div>
+      <div class="card-label">Unobtainable</div>
+    </div>
+  </section>
+
+  <!-- ── Main CTA ── -->
+  <section class="cta-section">
+    <div class="action-row">
+      <button class="cta-btn" onclick="runScan()" id="scanBtn" style="margin-bottom: 0;">
+        <span class="cta-icon">🔍</span>
+        <span class="cta-text">Scan GitHub Profile</span>
+        <span class="cta-sub" id="ctaSub">Discover your eligible achievements</span>
+      </button>
+      <button class="secondary-btn" onclick="runPlan()" id="planBtn" disabled style="display: none;">
+        📋 View Plan
+      </button>
+    </div>
+  </section>
+
+  <!-- ── Workflow steps ── -->
+  <div class="workflow-steps" id="workflowSteps" style="display:none">
+    <div class="step" id="stepScan">
+      <div class="step-indicator">1</div>
+      <div class="step-label">Scan</div>
+    </div>
+    <div class="step-line"></div>
+    <div class="step" id="stepPlan">
+      <div class="step-indicator">2</div>
+      <div class="step-label">Plan</div>
+    </div>
+  </div>
+
+  <!-- ── Achievement grid ── -->
+  <section class="achievements-section">
+    <div class="section-header">
+      <h2>Achievement Matrix</h2>
+      <span class="scan-hint" id="scanHint">Run a scan to populate</span>
+    </div>
+    <div class="achievement-grid" id="achievementGrid">
+      <!-- Skeleton cards -->
+      <div class="ach-card skeleton"></div>
+      <div class="ach-card skeleton"></div>
+      <div class="ach-card skeleton"></div>
+      <div class="ach-card skeleton"></div>
+      <div class="ach-card skeleton"></div>
+      <div class="ach-card skeleton"></div>
+    </div>
+  </section>
+
+  <!-- ── Action plan ── -->
+  <section class="plan-section" id="planSection" style="display:none">
+    <div class="section-header">
+      <h2>📋 Action Plan</h2>
+      <span class="mode-badge" id="modeBadge">DRY RUN</span>
+    </div>
+    <div class="plan-list" id="planList"></div>
+  </section>
+
+  <!-- ── Live log ── -->
+  <section class="log-section">
+    <div class="section-header">
+      <h2>📋 Audit Log</h2>
+      <button class="clear-btn" onclick="clearLog()">Clear</button>
+    </div>
+    <div class="log-container" id="logContainer">
+      <div class="log-empty">No activity yet — run a scan to begin.</div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ═══════════════════════════════ MODAL ═══════════════════════════════ -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════ TOAST ═══════════════════════════════ -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
