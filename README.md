@@ -93,16 +93,11 @@ GITHUB_TOKEN_1=ghp_your_token_here
 GITHUB_TOKEN_2=ghp_optional_second_token
 ```
 
-### 5. Generate a GitHub Personal Access Token
+### 5. Get your GitHub Token (Quick Steps)
 
-1. Go to **GitHub → Settings → Developer settings → Personal access tokens → Tokens (classic)**
-2. Click **Generate new token**
-3. Set an expiry (recommend: 90 days)
-4. Select scopes:
-   - ✅ `repo` — Full repository access
-   - ✅ `user` — Read/write user profile
-   - ✅ `read:user` — Read user info
-5. Copy the token and paste it into `.env`
+1. Click here: [Create a Personal Access Token](https://github.com/settings/tokens/new?scopes=repo,user,read:user&description=GitHub+Achievement+Agent)
+2. Scroll to the bottom and click **Generate token**.
+3. Copy the token (starts with `ghp_`) and paste it into your `.env` file!
 
 **Never share or commit your `.env` file.**
 
