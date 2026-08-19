@@ -56,7 +56,8 @@ The agent **automatically stops** on:
 ### 1. Clone / open the project
 
 ```bash
-cd github-achievement-agent
+git clone https://github.com/hariom33699/github-achievement_Unlocker-agent.git
+cd github-achievement_Unlocker-agent
 ```
 
 ### 2. Create a virtual environment
